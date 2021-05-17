@@ -1,0 +1,3 @@
+include ':realitycore'
+include ':app'
+rootProject.name = "RealityCore"
