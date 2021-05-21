@@ -149,7 +149,7 @@ class ArEnvironment(
      * The [MaterialInstance] used when Depth is not activated or not available
      */
     val flatMaterialInstance: MaterialInstance by lazy {
-        loadMaterial(context.assets, "materials/camera_stream_flat.filamat")
+        loadMaterial(context.assets, "materials/ar_environment_material_flat.filamat")
             .createInstance()
             .apply {
                 setExternalStreamTexture("cameraTexture", stream)
@@ -164,7 +164,7 @@ class ArEnvironment(
      * The [MaterialInstance] used when Depth is activated and available
      */
     val depthMaterialInstance: MaterialInstance by lazy {
-        loadMaterial(context.assets, "materials/camera_stream_depth.filamat")
+        loadMaterial(context.assets, "materials/ar_environment_material_depth.filamat")
             .createInstance()
             .apply {
                 setExternalStreamTexture("cameraTexture", stream)
