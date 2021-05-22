@@ -5,6 +5,11 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.gorisse.thomas/realitycore.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.gorisse.thomas%22%20AND%20a:%22realitycore%22)
 
+
+### INITIAL PUSH IN PROGRESS...
+### DON'T TRY TO USE THE REPO YET.
+### THIS MESSAGE WILL AUTO-DESTRUCT WHEN EVERYTHING IS READY FOR TEST.
+
 Use the RealityCore SDK to implement high-performance 3D simulation and rendering.
 
 RealityCore leverages information provided by the [ARCore SDK](https://github.com/google-ar/arcore-android-sdk) to seamlessly integrate virtual objects rendered by [Filament Engine](https://github.com/google/filament) into the real world.
