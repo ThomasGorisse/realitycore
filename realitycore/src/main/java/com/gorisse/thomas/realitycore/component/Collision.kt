@@ -69,5 +69,5 @@ enum class CollisionFilter(var group: CollisionGroup, var mask: CollisionGroup) 
      *
      * The sensor collision filter is typically used by rays in ray casts, shapes in convex shape casts, and trigger volumes. It corresponds to a [group] and [mask] both set to [CollisionGroup.All].
      */
-    Sensor(CollisionGroup.All, CollisionGroup.All),
+    Sensor(CollisionGroup.All, CollisionGroup.All)
 }

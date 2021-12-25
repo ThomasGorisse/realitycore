@@ -1,15 +1,47 @@
 package com.gorisse.thomas.realitycore.utils
 
+import android.content.res.AssetManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.nio.ShortBuffer
 
-fun <R> InputStream.useBuffer(block: (ByteBuffer) -> R): R = use { inputStream ->
+suspend fun <R> AssetManager.loadAsset(filename: String, create: suspend (ByteBuffer) -> R, destroy: ((R?) -> Unit)?): R = withContext(Dispatchers.IO) {
+    val asset: R? =null
+    try {
+        open(filename).use { inputStream ->
+            val bytes = ByteArray(inputStream.available())
+            inputStream.read(bytes)
+            val byteBuffer = ByteBuffer.wrap(bytes)
+            withContext(Dispatchers.Main) {
+                create(byteBuffer)
+            }
+        }
+    } finally {
+        destroy?.invoke(asset)
+    }
+}
+
+fun <R> InputStream.useBuffer(block: (ByteBuffer) -> R): R =
+    use { inputStream ->
         val bytes = ByteArray(inputStream.available())
         inputStream.read(bytes)
         block(ByteBuffer.wrap(bytes))
+    }
+
+suspend fun <R> AssetManager.useBufferAsync(filename: String, block: suspend (ByteBuffer) -> R): R =
+    withContext(Dispatchers.IO) { open(filename).useBufferAsync(block) }
+
+suspend fun <R> InputStream.useBufferAsync(block: suspend (ByteBuffer) -> R): R =
+    use { inputStream ->
+        withContext(Dispatchers.IO) {
+            val bytes = ByteArray(inputStream.available())
+            inputStream.read(bytes)
+            block(ByteBuffer.wrap(bytes))
+        }
     }
 
 fun <R> InputStream.useText(block: (String) -> R): R = use { inputStream ->

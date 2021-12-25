@@ -13,8 +13,11 @@ import com.google.ar.core.Frame
 import java.util.concurrent.TimeUnit
 
 class Renderer(
-    val arSession: ArSession, val engine: Engine, val surfaceView: SurfaceView, val view: View,
-    private val doFrame: (frame: Frame) -> Unit
+    val arSession: ArSession? = null,
+    val engine: Engine,
+    val surfaceView: SurfaceView,
+    val view: View,
+    private val doFrame: (frame: Frame?) -> Unit
 ) : Choreographer.FrameCallback {
     companion object {
         private const val maxFramesPerSecond: Long = 60
@@ -41,7 +44,7 @@ class Renderer(
 
     private val mirrors = mutableListOf<Mirror>()
 
-    val renderer = engine.createRenderer()
+    val filamentRenderer = engine.createRenderer()
     var swapChain: SwapChain? = null
     val displayHelper = DisplayHelper(surfaceView.context)
     val uiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK).apply {
@@ -49,7 +52,7 @@ class Renderer(
             override fun onNativeWindowChanged(surface: Surface) {
                 swapChain?.let { engine.destroySwapChain(it) }
                 swapChain = engine.createSwapChain(surface)
-                displayHelper.attach(renderer, surfaceView.display)
+                displayHelper.attach(filamentRenderer, surfaceView.display)
             }
 
             override fun onDetachedFromSurface() {
@@ -85,39 +88,37 @@ class Renderer(
 
         lastTick = tick
 
-        // render using frame from last tick to reduce possibility of jitter but increases latency
-        if (// only render if we have an ar frame
-            timestamp != 0L &&
-            uiHelper.isReadyToRender &&
-            // This means you are sending frames too quickly to the GPU
-            renderer.beginFrame(swapChain!!, frameTimeNanos)
-        ) {
-            renderer.render(view)
-            renderer.endFrame()
-        }
-
-        synchronized(mirrors) {
-            mirrors.iterator().forEach { mirror ->
-                if (mirror.surface == null) {
-                    if (mirror.swapChain != null) {
-                        engine.destroySwapChain(mirror.swapChain!!)
-                    }
-                    mirrors.remove(mirror)
-                } else if (mirror.swapChain == null) {
-                    mirror.swapChain = engine.createSwapChain(mirror.surface!!)
-                }
-            }
-        }
-
-        val frame = arSession.update()
-
+        val frame = arSession?.update()
+        val frameTimestamp = frame?.timestamp ?: frameTimeNanos
         // During startup the camera system may not produce actual images immediately. In
         // this common case, a frame with timestamp = 0 will be returned.
-        if (frame.timestamp != 0L &&
-            frame.timestamp != timestamp
-        ) {
-            timestamp = frame.timestamp
+        // only render if we have an ar frame
+        // render using frame from last tick to reduce possibility of jitter but increases latency
+        if (frameTimestamp != 0L && frameTimestamp != timestamp && uiHelper.isReadyToRender) {
+            timestamp = frameTimestamp
+
             doFrame(frame)
+
+            // Render the scene, unless the renderer wants to skip the frame.
+            // This means you are sending frames too quickly to the GPU
+            //TODO : Check if we should use the frameTimeNanos
+            if (filamentRenderer.beginFrame(swapChain!!, frameTimestamp)) {
+                filamentRenderer.render(view)
+                filamentRenderer.endFrame()
+
+                synchronized(mirrors) {
+                    mirrors.iterator().forEach { mirror ->
+                        if (mirror.surface == null) {
+                            if (mirror.swapChain != null) {
+                                engine.destroySwapChain(mirror.swapChain!!)
+                            }
+                            mirrors.remove(mirror)
+                        } else if (mirror.swapChain == null) {
+                            mirror.swapChain = engine.createSwapChain(mirror.surface!!)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -142,7 +143,7 @@ class Renderer(
         displayHelper.detach()
         uiHelper.detach()
         swapChain?.let { engine.destroySwapChain(it) }
-        engine.destroyRenderer(renderer)
+        engine.destroyRenderer(filamentRenderer)
     }
 
     internal fun setDesiredSize(width: Int, height: Int) {
@@ -152,7 +153,13 @@ class Renderer(
     /**
      * Starts mirroring to the specified [Surface].
      */
-    internal fun startMirroring(surface: Surface, left: Int, bottom: Int, width: Int, height: Int) {
+    internal fun startMirroring(
+        surface: Surface,
+        left: Int,
+        bottom: Int,
+        width: Int,
+        height: Int
+    ) {
         synchronized(mirrors) {
             mirrors.add(
                 Mirror(

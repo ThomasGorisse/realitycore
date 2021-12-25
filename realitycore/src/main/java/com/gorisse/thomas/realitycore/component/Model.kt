@@ -1,13 +1,14 @@
 package com.gorisse.thomas.realitycore.component
 
 import com.google.android.filament.MaterialInstance
-import com.google.android.filament.utils.Mat4
-import com.gorisse.thomas.realitycore.utils.of
+import com.google.android.filament.gltfio.FilamentInstance
 
 /**
  * ### An interface that provides meshes and materials to define the visual appearance of an entity.
  */
 interface HasModel {
+
+    val assetInstance : FilamentInstance
 
     /**
      * ### Changes whether or not the renderable casts shadows.

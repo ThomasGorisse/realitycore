@@ -102,7 +102,15 @@ class ArEnvironment(
     }
 
     internal fun doFrame(frame: Frame) {
-        modelEntity.material = ((
+        if(session.isDepthModeSupported) {
+            val arImage = frame.takeIf { session.isDepthModeSupported }?.acquireDepthImage()?.takeIf {
+            try {
+                it.planes[0].buffer[0] != 0.toByte()
+            } catch (error: Throwable) {
+                false
+            }
+        } as? ArImage)
+        val modelMaterial = (
                 frame.takeIf { session.isDepthModeSupported }?.acquireDepthImage()?.takeIf {
                     try {
                         it.planes[0].buffer[0] != 0.toByte()
@@ -143,6 +151,7 @@ class ArEnvironment(
 
                 }
             }
+        modelEntity.material = modelMaterial
     }
 
     /**
@@ -191,13 +200,10 @@ class ArEnvironment(
     private fun uvTransform(displayRotation: Int) = translation(Float3(.5f, .5f, 0f)) *
             rotation4(
                 Float4(
-                    0f,
-                    0f,
-                    -1f,
-                    cameraManager.imageRotation(session.cameraId, displayRotation)
-                        .toFloat()
+                    z = -1f,
+                    w = cameraManager.imageRotation(session.cameraId, displayRotation).toFloat()
                 )
-            ) * translation(Float3(-.5f, -.5f, 0f))
+            ) * translation(Float3(x = -.5f, y = -.5f))
 
     private fun CameraManager.imageRotation(cameraId: String, displayRotation: Int): Int =
         (getCameraCharacteristics(cameraId)
